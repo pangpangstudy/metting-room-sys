@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  db:
+    # 启动容器
+    container_name: meeting_room
+    image: mysql
+    restart: always
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - db_data_meeting_room_workshop:/var/lib/mysql
+
+volumes:
+  db_data_meeting_room_workshop:
