@@ -9,6 +9,9 @@ import { EmailModule } from './email/email.module';
 import { User } from './user/entities/user.entity';
 import { Role } from './user/entities/role.entity';
 import { Permission } from './user/entities/Permission.entity';
+import { JwtModule } from '@nestjs/jwt';
+import { APP_GUARD } from '@nestjs/core';
+import { LoginGuard } from './login.guard';
 
 @Module({
   imports: [
@@ -39,11 +42,23 @@ import { Permission } from './user/entities/Permission.entity';
       },
       inject: [ConfigService],
     }),
+    JwtModule.registerAsync({
+      global: true,
+      useFactory: (configService: ConfigService) => {
+        return {
+          secret: configService.get('jwt_secret'),
+          signOptions: {
+            expiresIn: '30m',
+          },
+        };
+      },
+      inject: [ConfigService],
+    }),
     UserModule,
     RedisModule,
     EmailModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, { provide: APP_GUARD, useClass: LoginGuard }],
 })
 export class AppModule {}

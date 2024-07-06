@@ -8,7 +8,6 @@ import { RedisService } from 'src/redis/redis.service';
 import { md5 } from 'src/utils';
 import { Role } from './entities/role.entity';
 import { Permission } from './entities/Permission.entity';
-import { ucs2 } from 'punycode';
 import { LoginUserDto } from './dto/login-user.dto';
 import { LoginUserVo } from './vo/login-user.vo';
 
@@ -139,6 +138,26 @@ export class UserService {
       }, []),
     };
     return vo;
+  }
+  async findById(userId: number, isAdmin: boolean) {
+    const user = await this.userRepository.findOne({
+      where: { id: userId, isAdmin: isAdmin },
+      relations: ['roles', 'roles.permissions'],
+    });
+    return {
+      id: user.id,
+      isAdmin: user.isAdmin,
+      username: user.username,
+      roles: user.roles.map((item, index) => item.name),
+      permissions: user.roles.reduce((arr, role) => {
+        role.permissions.forEach((index, permission) => {
+          if (arr.indexOf(permission) === -1) {
+            arr.push(permission);
+          }
+        });
+        return arr;
+      }, []),
+    };
   }
   findAll() {
     return `This action returns all user`;
