@@ -10,9 +10,10 @@ import {
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { RegisterUserDto } from './dto/register-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+
 import { RedisService } from 'src/redis/redis.service';
 import { EmailService } from 'src/email/email.service';
+import { LoginUserDto } from './dto/login-user.dto';
 
 @Controller('user')
 export class UserController {
@@ -40,18 +41,21 @@ export class UserController {
     return '验证码发送成功';
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.userService.findOne(+id);
+  @Get('init-data')
+  async initData() {
+    await this.userService.initData();
+    return 'done';
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.userService.update(+id, updateUserDto);
+  @Post('login')
+  async login(@Body() loginUser: LoginUserDto) {
+    const vo = await this.userService.login(loginUser, false);
+    return vo;
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.userService.remove(+id);
+  @Post('admin/login')
+  async adminLogin(@Body() loginUser: LoginUserDto) {
+    const vo = await this.userService.login(loginUser, true);
+    return vo;
   }
 }
