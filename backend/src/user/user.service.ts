@@ -2,7 +2,7 @@ import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
-import { Repository } from 'typeorm';
+import { Like, Repository } from 'typeorm';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { RedisService } from 'src/redis/redis.service';
 import { md5 } from 'src/utils';
@@ -15,6 +15,53 @@ import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UserService {
+  async findUsersByPage(
+    username: string,
+    nickName: string,
+    email: string,
+    pageNo: number,
+    pageSize: number,
+  ) {
+    const skipCount = (pageNo - 1) * pageSize;
+    const condition: Record<string, any> = {};
+    // 模糊查询
+    //查找用户名包含某个子字符串的所有记录。
+    if (username) {
+      condition.username = Like(`%$${username}%`);
+    }
+    if (nickName) {
+      condition.nickName = Like(`%${nickName}%`);
+    }
+    if (email) {
+      condition.email = Like(`%${email}%`);
+    }
+    // findAndCount 的 api，它还会查询总记录数   指定select字段
+    const [users, totalCount] = await this.userRepository.findAndCount({
+      select: [
+        'id',
+        'username',
+        'nickName',
+        'email',
+        'phoneNumber',
+        'isFrozen',
+        'headPic',
+        'createTime',
+      ],
+      skip: skipCount,
+      take: pageSize,
+      where: condition,
+    });
+    return { users, totalCount };
+  }
+  async freezeUserById(userId: number) {
+    const user = await this.userRepository.findOneBy({
+      id: userId,
+    });
+
+    user.isFrozen = true;
+
+    await this.userRepository.save(user);
+  }
   private logger = new Logger();
   @InjectRepository(User)
   private userRepository: Repository<User>;
