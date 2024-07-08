@@ -1,0 +1,12 @@
+#login-container {
+  width: 400px;
+  margin: 100px auto 0 auto;
+  text-align: center;
+  .btn {
+    width: 100%;
+  }
+  .links {
+    display: flex;
+    justify-content: space-between;
+  }
+}
