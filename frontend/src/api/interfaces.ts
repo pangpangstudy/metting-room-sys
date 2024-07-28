@@ -3,9 +3,9 @@ import { RegisterUser } from "../pages/register/Register";
 import { UpdatePassword } from "../pages/updatepassword/UpdatePassword";
 import { UserInfo } from "../pages/updateInfo/UpdateInfo";
 import { message } from "antd";
-
+export const baseURL = "http://localhost:3000";
 const axiosInstance = axios.create({
-  baseURL: "http://localhost:3000",
+  baseURL,
   timeout: 3000,
 });
 axiosInstance.interceptors.request.use(function (req) {
@@ -86,8 +86,6 @@ export async function refreshToken() {
       refresh_token: localStorage.getItem("refresh_token"),
     },
   });
-  console.log(res.data.data.access_token);
-  console.log(res.data.data.refresh_token);
   localStorage.setItem("access_token", res.data.data.access_token || "");
   localStorage.setItem("refresh_token", res.data.data.refresh_token || "");
   return res;

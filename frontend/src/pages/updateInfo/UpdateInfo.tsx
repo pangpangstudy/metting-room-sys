@@ -8,6 +8,7 @@ import {
   updateInfo,
   updateUserInfoCaptcha,
 } from "../../api/interfaces";
+import { HeadPicUpload } from "../../components/HeadPicUpload";
 export interface UserInfo {
   headPic: string;
   nickName: string;
@@ -51,8 +52,7 @@ export function UpdateInfo() {
       const res = await getUserInfo();
       const { data } = res.data;
       if (res.status === 201 || res.status === 200) {
-        console.log(data);
-        form.setFieldValue("headPic", data.headPic || "未设置");
+        form.setFieldValue("headPic", data.headPic);
         form.setFieldValue("nickName", data.nickName);
         form.setFieldValue("email", data.email);
       }
@@ -73,7 +73,7 @@ export function UpdateInfo() {
           name="headPic"
           rules={[{ required: true, message: "请输入头像!" }]}
         >
-          <Input />
+          <HeadPicUpload></HeadPicUpload>
         </Form.Item>
 
         <Form.Item
