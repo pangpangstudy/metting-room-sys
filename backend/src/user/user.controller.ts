@@ -8,6 +8,9 @@ import {
   ParseIntPipe,
   BadRequestException,
   DefaultValuePipe,
+  HttpStatus,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { RegisterUserDto } from './dto/register-user.dto';
@@ -22,7 +25,18 @@ import { UserDetailVo } from './vo/user-info.vo';
 import { UpdateUserPasswordDto } from './dto/update-user-password.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { generateParseIntPipe } from 'src/utils';
-
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import { LoginUserVo } from './vo/login-user.vo';
+import { RefreshVo } from './vo/refresh.Vo';
+import { FileInterceptor } from '@nestjs/platform-express';
+//
+@ApiTags('用户管理模块')
 @Controller('user')
 export class UserController {
   constructor(
@@ -32,7 +46,19 @@ export class UserController {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {}
-
+  @ApiBody({
+    type: RegisterUserDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: '验证码失效|验证码不正确|用户已存在',
+    type: String,
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: '注册成功|失败',
+    type: String,
+  })
   @Post('register')
   create(@Body() registerUserDto: RegisterUserDto) {
     return this.userService.register(registerUserDto);
@@ -43,7 +69,17 @@ export class UserController {
     await this.userService.initData();
     return 'done';
   }
-
+  @ApiBody({ type: LoginUserDto })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    type: String,
+    description: '用户不存在|密码错误',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: '用户信息和token',
+    type: LoginUserVo,
+  })
   @Post('login')
   async login(@Body() loginUser: LoginUserDto) {
     const vo = await this.userService.login(loginUser, false);
@@ -51,6 +87,7 @@ export class UserController {
       {
         userId: vo.userInfo.id,
         username: vo.userInfo.username,
+        email: vo.userInfo.email,
         roles: vo.userInfo.roles,
         permissions: vo.userInfo.permissions,
       },
@@ -70,7 +107,17 @@ export class UserController {
     );
     return vo;
   }
-
+  @ApiBody({ type: LoginUserDto })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    type: String,
+    description: '用户不存在|密码错误',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: '用户信息和token',
+    type: LoginUserVo,
+  })
   @Post('admin/login')
   async adminLogin(@Body() loginUser: LoginUserDto) {
     const vo = await this.userService.login(loginUser, true);
@@ -78,6 +125,7 @@ export class UserController {
       {
         userId: vo.userInfo.id,
         username: vo.userInfo.username,
+        email: vo.userInfo.email,
         roles: vo.userInfo.roles,
         permissions: vo.userInfo.permissions,
       },
@@ -97,8 +145,25 @@ export class UserController {
     );
     return vo;
   }
+  @ApiQuery({
+    name: 'refreshToken',
+    type: String,
+    description: '刷新 token',
+    required: true,
+    example: 'xxxxxxxxyyyyyyyyzzzzz',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'token 已失效，请重新登录',
+    type: String,
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: '刷新成功',
+    type: RefreshVo,
+  })
   @Get('refresh')
-  async refresh(@Query('refreshToken') refreshToken: string) {
+  async refresh(@Query('refresh_token') refreshToken: string) {
     // 解密 || 验证
     // 获取User
     // 重新发送token
@@ -109,6 +174,7 @@ export class UserController {
         {
           userId: user.id,
           username: user.username,
+          email: user.email,
           roles: user.roles,
           permissions: user.permissions,
         },
@@ -124,14 +190,35 @@ export class UserController {
         },
         {
           expiresIn:
-            this.configService.get('jwt_refresh_token_expres_time') || '7d',
+            this.configService.get('jwt_refresh_token_expires_time') || '7d',
         },
       );
-      return { access_token, refresh_token };
+      const vo = new RefreshVo();
+      vo.access_token = access_token;
+      vo.refresh_token = refresh_token;
+      return vo;
     } catch (error) {
+      console.log(error);
       throw new UnauthorizedException('token已经失效');
     }
   }
+  @ApiQuery({
+    name: 'refreshToken',
+    type: String,
+    description: '刷新 token',
+    required: true,
+    example: 'xxxxxxxxyyyyyyyyzzzzz',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'token 已失效，请重新登录',
+    type: String,
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: '刷新成功',
+    type: RefreshVo,
+  })
   @Get('admin/refresh')
   async adminRefresh(@Query('refreshToken') refreshToken: string) {
     try {
@@ -143,6 +230,7 @@ export class UserController {
         {
           userId: user.id,
           username: user.username,
+          email: user.email,
           roles: user.roles,
           permissions: user.permissions,
         },
@@ -158,7 +246,7 @@ export class UserController {
         },
         {
           expiresIn:
-            this.configService.get('jwt_refresh_token_expres_time') || '7d',
+            this.configService.get('jwt_refresh_token_expires_time') || '7d',
         },
       );
 
@@ -170,6 +258,12 @@ export class UserController {
       throw new UnauthorizedException('token 已失效，请重新登录');
     }
   }
+  @ApiResponse({
+    status: HttpStatus.OK,
+    type: UserDetailVo,
+    description: '用户信息',
+  })
+  @ApiBearerAuth()
   // 登录之后 用户更新信息 相关数据回显
   @Get('info')
   @RequireLogin()
@@ -190,17 +284,40 @@ export class UserController {
   ///更新密码//
   /////////////
   // 管理员与用户使用同一个路由进行开发
+  @ApiBody({
+    type: UpdateUserDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    type: String,
+    description: '验证码不正确|已失效',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    type: String,
+    description: '密码更改成功',
+  })
   @Post(['update_password', 'admin/update_password'])
-  @RequireLogin()
-  async updatePassword(
-    @UserInfo('userId') userId: number,
-    @Body() passwordDto: UpdateUserPasswordDto,
-  ) {
-    return await this.userService.updatePassword(userId, passwordDto);
+  async updatePassword(@Body() passwordDto: UpdateUserPasswordDto) {
+    return await this.userService.updatePassword(passwordDto);
   }
-  ///////////////
+  ////////////////
   ///更新个人信息//
-  /////////////..
+  ///////////////
+  @ApiBearerAuth()
+  @ApiBody({
+    type: UpdateUserDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    type: String,
+    description: '验证码不正确|已失效',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    type: String,
+    description: '信息更改成功|失败',
+  })
   @Post(['update', 'admin/update'])
   @RequireLogin()
   async update(
@@ -213,6 +330,18 @@ export class UserController {
   ///////////////
   ///邮箱验证码//
   /////////////
+  @ApiQuery({
+    name: 'address',
+    type: String,
+    description: '邮箱地址',
+    required: true,
+    example: 'xxx.xx.com',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: '发送成功',
+    type: String,
+  })
   @Get('register-captcha')
   async captcha(@Query('address') address: string) {
     const captcha = Math.random().toString().slice(2, 8);
@@ -225,8 +354,9 @@ export class UserController {
     // });
     return '验证码发送成功';
   }
+  @RequireLogin()
   @Get('update/captcha')
-  async updateCaptcha(@Query('address') address: string) {
+  async updateCaptcha(@UserInfo('email') address) {
     const code = Math.random().toString().slice(2, 8);
 
     await this.redisService.set(
@@ -242,9 +372,18 @@ export class UserController {
     });
     return '发送成功';
   }
-
+  @ApiQuery({
+    name: 'address',
+    description: '邮箱地址',
+    type: String,
+  })
+  @ApiResponse({
+    type: String,
+    description: '发送成功',
+  })
   @Get('update_password/captcha')
   async updatePasswordCaptcha(@Query('address') address: string) {
+    console.log(address);
     const code = Math.random().toString().slice(2, 8);
 
     await this.redisService.set(
@@ -307,5 +446,15 @@ export class UserController {
       pageNo,
       pageSize,
     );
+  }
+  /////////////
+  ///上传图片//
+  ////////////
+  @RequireLogin()
+  @Post('/upload')
+  @UseInterceptors(FileInterceptor('file', { dest: 'uploads' }))
+  uploadFile(@UploadedFile() file: Express.Multer.File) {
+    console.log(file);
+    return file.path;
   }
 }

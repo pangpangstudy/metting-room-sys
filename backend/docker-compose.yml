@@ -1,4 +1,7 @@
-# docker componse --env-file .env.development up -d
+# docker compose --env-file ./src/.env.development.local up -d
+# docker exec -it meeting_room env
+# docker logs meeting_room
+
 version: '3.8'
 services:
   db:
@@ -7,12 +10,11 @@ services:
     image: mysql
     restart: always
     ports:
-      - ${DATABASE_PORT}:3306
+      - ${mysql_server_port}:3306
     environment:
-      MYSQL_ROOT_PASSWORD: ${DATABASE_PASSWORD}
-      MYSQL_DATABASE: ${DATABASE_NAME}
-      MYSQL_USER: ${DATABASE_USER}
-      MYSQL_PASSWORD: ${DATABASE_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${mysql_server_password}
+      MYSQL_DATABASE: ${mysql_server_database}
+      # MYSQL_USER: ${mysql_server_username}
     volumes:
       - db_data_meeting_room_workshop:/var/lib/mysql
   redis:
@@ -20,10 +22,10 @@ services:
     image: redis
     restart: always
     ports:
-      - '${REDIS_PORT}:6379'
+      - '${redis_server_port}:6379'
     environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-    command: ['redis-server', '--requirepass', '${REDIS_PASSWORD}']
+      REDIS_PASSWORD: ${redis_server_password}
+    command: ['redis-server', '--requirepass', '${redis_server_password}']
     volumes:
       - redis_data_meeting_room:/data
 

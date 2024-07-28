@@ -19,6 +19,7 @@ export class User {
   @Column({
     length: 50,
     comment: '用户名',
+    unique: true,
   })
   username: string;
 
@@ -38,6 +39,7 @@ export class User {
   @Column({
     comment: '邮箱',
     length: 50,
+    unique: true,
   })
   email: string;
 

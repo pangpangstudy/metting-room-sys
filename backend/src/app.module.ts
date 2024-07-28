@@ -24,6 +24,7 @@ import { PermissionGuard } from './permission.guard';
     // 数据库配置
     TypeOrmModule.forRootAsync({
       useFactory(configService: ConfigService) {
+        console.log(process.env.NODE_ENV);
         return {
           type: 'mysql',
           host: configService.get('mysql_server_host'),
@@ -36,9 +37,9 @@ import { PermissionGuard } from './permission.guard';
           entities: [User, Role, Permission],
           poolSize: 10,
           connectorPackage: 'mysql2',
-          extra: {
-            authPlugin: 'sha256_password',
-          },
+          // extra: {
+          //   authPlugin: 'sha256_password',
+          // },
         };
       },
       inject: [ConfigService],

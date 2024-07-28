@@ -10,7 +10,6 @@ export const RequirePermissions = (...permissions: string[]) =>
 export const UserInfo = createParamDecorator(
   (data: string, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest<Request>();
-
     if (!request.user) {
       return null;
     }

@@ -7,13 +7,25 @@ import ErrorPage from "./pages/error/ErrorPage";
 import { Login } from "./pages/login/Login";
 import Register from "./pages/register/Register";
 import UpdatePassword from "./pages/updatepassword/UpdatePassword";
+import Index from "./pages/Index/Index";
+import { UpdateInfo } from "./pages/updateInfo/UpdateInfo";
 
 // 设置路由路径
 const routes = [
   {
     path: "/",
-    element: <div>index</div>,
+    element: <Index />,
     errorElement: <ErrorPage />,
+    children: [
+      {
+        path: "update_info",
+        element: <UpdateInfo />,
+      },
+      {
+        path: "bbb",
+        element: <div>bbb</div>,
+      },
+    ],
   },
   {
     path: "login",

@@ -28,3 +28,4 @@ redis的docker compose的设置，需要执行命令才能设置上密码
 用户列表数据分页及模糊查询：完成
 
 swagger文档：待做
+文档配置：title,description,version
